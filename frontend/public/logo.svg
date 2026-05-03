@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#0a0f1e"/>
+
+  <!-- Controller body -->
+  <rect x="10" y="22" width="44" height="26" rx="13" fill="#0d1529" stroke="#00d4aa" stroke-width="1.5"/>
+
+  <!-- Left d-pad -->
+  <rect x="17" y="31" width="9" height="3" rx="1.5" fill="#00d4aa" opacity="0.8"/>
+  <rect x="20" y="28" width="3" height="9" rx="1.5" fill="#00d4aa" opacity="0.8"/>
+
+  <!-- Right buttons -->
+  <circle cx="44" cy="30" r="2" fill="#00a8ff" opacity="0.9"/>
+  <circle cx="48" cy="34" r="2" fill="#00d4aa" opacity="0.9"/>
+  <circle cx="44" cy="38" r="2" fill="#b060ff" opacity="0.9"/>
+  <circle cx="40" cy="34" r="2" fill="#ff6040" opacity="0.9"/>
+
+  <!-- Center button / touchpad -->
+  <rect x="28" y="31" width="8" height="6" rx="3" fill="#1a2540" stroke="#00d4aa" stroke-width="1"/>
+
+  <!-- L/R triggers -->
+  <rect x="14" y="18" width="10" height="6" rx="3" fill="#0d1529" stroke="#00d4aa" stroke-width="1.5"/>
+  <rect x="40" y="18" width="10" height="6" rx="3" fill="#0d1529" stroke="#00d4aa" stroke-width="1.5"/>
+
+  <!-- Glow effect -->
+  <circle cx="32" cy="32" r="31" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+</svg>

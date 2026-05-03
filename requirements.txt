@@ -1,0 +1,19 @@
+﻿# Backend (FastAPI)
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-dotenv>=1.0.1
+aiosqlite>=0.20.0
+pydantic>=2.4.1,<2.9.0
+pydantic-settings>=2.5.0
+python-multipart>=0.0.12
+httpx[socks]>=0.27.0
+openpyxl>=3.1.0
+sse-starlette>=1.6.0
+
+# Bot (aiogram)
+aiogram[redis]==3.13.0
+anthropic>=0.25.0
+
+# Parser
+schedule>=1.2.0
+

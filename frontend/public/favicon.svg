@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background -->
+  <circle cx="16" cy="16" r="16" fill="#0a0f1e"/>
+
+  <!-- Controller body compact -->
+  <rect x="4" y="10" width="24" height="14" rx="7" fill="#0d1529" stroke="#00d4aa" stroke-width="1"/>
+
+  <!-- Left d-pad (mini) -->
+  <rect x="7.5" y="15" width="5" height="2" rx="1" fill="#00d4aa" opacity="0.8"/>
+  <rect x="9" y="13.5" width="2" height="5" rx="1" fill="#00d4aa" opacity="0.8"/>
+
+  <!-- Right buttons (mini) -->
+  <circle cx="22" cy="14.5" r="1.2" fill="#00a8ff" opacity="0.9"/>
+  <circle cx="24.4" cy="16.8" r="1.2" fill="#00d4aa" opacity="0.9"/>
+  <circle cx="22" cy="19" r="1.2" fill="#b060ff" opacity="0.9"/>
+  <circle cx="19.6" cy="16.8" r="1.2" fill="#ff6040" opacity="0.9"/>
+
+  <!-- Center touchpad -->
+  <rect x="13" y="15.5" width="6" height="4" rx="2" fill="#1a2540" stroke="#00d4aa" stroke-width="0.7"/>
+
+  <!-- L/R triggers -->
+  <rect x="6" y="7" width="6" height="4" rx="2" fill="#0d1529" stroke="#00d4aa" stroke-width="1"/>
+  <rect x="20" y="7" width="6" height="4" rx="2" fill="#0d1529" stroke="#00d4aa" stroke-width="1"/>
+</svg>

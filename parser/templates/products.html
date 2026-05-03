@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📦 База товаров — TG-Shop Parser</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* Header */
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .back-btn { background: #1e293b; border: none; color: #94a3b8; padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .back-btn:hover { background: #334155; color: #fff; }
+  .header h1 { font-size: 20px; font-weight: 800; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-pill { background: #1e293b; border-radius: 10px; padding: 10px 16px; font-size: 13px; }
+  .stat-pill strong { color: #fff; font-size: 20px; font-weight: 900; display: block; }
+  .stat-pill span { color: #64748b; font-size: 11px; }
+
+  /* Filters */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .filters input, .filters select {
+    background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; outline: none;
+  }
+  .filters input { flex: 1; min-width: 160px; }
+  .filters input:focus, .filters select:focus { border-color: #3b82f6; }
+  .filter-btn {
+    background: #3b82f6; border: none; color: #fff;
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .filter-btn:hover { background: #2563eb; }
+  .reset-btn {
+    background: #334155; border: none; color: #94a3b8;
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+  .reset-btn:hover { background: #475569; color: #fff; }
+
+  /* Table */
+  .table-wrap { background: #1e293b; border-radius: 14px; overflow: hidden; }
+  .products-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .products-table th {
+    padding: 10px 12px; text-align: left; color: #64748b; font-weight: 600;
+    border-bottom: 1px solid #334155; white-space: nowrap; background: #1e293b;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .products-table td { padding: 8px 12px; border-bottom: 1px solid #0f172a; vertical-align: middle; }
+  .products-table tr:last-child td { border-bottom: none; }
+  .products-table tr:hover td { background: #162032; }
+
+  /* Row states */
+  .row-sale td:first-child { border-left: 3px solid #22d3ee; }
+  .row-no-price td:first-child { border-left: 3px solid #ef4444; }
+  .row-inactive td { opacity: .5; }
+
+  /* Thumbnail */
+  .thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; background: #334155; display: block; }
+  .thumb-placeholder { width: 36px; height: 36px; border-radius: 6px; background: #334155; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 8px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-ua { background: #1d4ed8; color: #93c5fd; }
+  .badge-tr { background: #dc2626; color: #fca5a5; }
+  .badge-game { background: #064e3b; color: #6ee7b7; }
+  .badge-sub  { background: #4a1d96; color: #c4b5fd; }
+  .badge-topup{ background: #78350f; color: #fcd34d; }
+  .badge-dlc  { background: #1e3a8a; color: #93c5fd; }
+  .discount-badge { background: #164e63; color: #22d3ee; padding: 2px 6px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+
+  /* Price edit */
+  .price-val { cursor: pointer; color: #fff; font-weight: 600; border-bottom: 1px dashed #475569; display: inline-block; }
+  .price-val:hover { border-color: #3b82f6; color: #93c5fd; }
+  .price-input {
+    width: 72px; background: #0f172a; border: 1px solid #3b82f6; color: #fff;
+    border-radius: 5px; padding: 3px 6px; font-size: 12px; outline: none;
+  }
+  .price-save { background: #22c55e; border: none; color: #fff; border-radius: 5px; padding: 3px 7px; font-size: 11px; cursor: pointer; margin-left: 3px; }
+  .price-save:hover { background: #16a34a; }
+  .price-cancel { background: none; border: none; color: #64748b; font-size: 12px; cursor: pointer; margin-left: 2px; }
+  .price-cancel:hover { color: #94a3b8; }
+
+  /* Delete button */
+  .del-btn { background: none; border: none; color: #475569; font-size: 15px; cursor: pointer; padding: 4px; border-radius: 5px; }
+  .del-btn:hover { color: #ef4444; background: rgba(239,68,68,.1); }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; gap: 8px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+  .page-btn {
+    background: #1e293b; border: none; color: #94a3b8;
+    padding: 7px 13px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+  .page-btn:hover:not(:disabled) { background: #334155; color: #fff; }
+  .page-btn.active { background: #3b82f6; color: #fff; }
+  .page-btn:disabled { opacity: .4; cursor: default; }
+  .page-info { font-size: 12px; color: #64748b; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #1e293b; border: 1px solid #334155;
+    color: #e2e8f0; padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; z-index: 999; opacity: 0;
+    transition: opacity .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.ok  { border-color: #22c55e; }
+  .toast.err { border-color: #ef4444; }
+
+  @media (max-width: 700px) {
+    .products-table th:nth-child(n+6), .products-table td:nth-child(n+6) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <a href="/" class="back-btn">← Назад</a>
+    <h1>📦 База товаров</h1>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-pill"><strong id="sUaTotal">—</strong><span>UA товаров</span></div>
+    <div class="stat-pill"><strong id="sUaSale">—</strong><span>UA со скидкой</span></div>
+    <div class="stat-pill"><strong id="sTrTotal">—</strong><span>TR товаров</span></div>
+    <div class="stat-pill"><strong id="sTrSale">—</strong><span>TR со скидкой</span></div>
+    <div class="stat-pill"><strong id="sNoByn">—</strong><span>без BYN цены</span></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input type="text" id="fSearch" placeholder="🔍 Поиск по названию..." oninput="scheduleSearch()">
+    <select id="fRegion" onchange="applyFilters()">
+      <option value="">Все регионы</option>
+      <option value="UA">🇺🇦 UA</option>
+      <option value="TR">🇹🇷 TR</option>
+    </select>
+    <select id="fType" onchange="applyFilters()">
+      <option value="">Все типы</option>
+      <option value="game">Игры</option>
+      <option value="subscription">Подписки</option>
+      <option value="topup">Пополнения</option>
+      <option value="dlc">DLC</option>
+    </select>
+    <select id="fTaskType" onchange="applyFilters()">
+      <option value="">Все категории</option>
+      <option value="new_games">🆕 Новые игры</option>
+      <option value="sales">🔥 Скидки</option>
+      <option value="preorders">⏳ Предзаказы</option>
+    </select>
+    <select id="fDiscount" onchange="applyFilters()">
+      <option value="">Любая скидка</option>
+      <option value="true">Со скидкой</option>
+      <option value="false">Без скидки</option>
+    </select>
+    <button class="reset-btn" onclick="resetFilters()">✕ Сброс</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="products-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th></th>
+          <th>Название</th>
+          <th>Регион</th>
+          <th>Тип</th>
+          <th>Цена UAH/TRY</th>
+          <th>BYN (UA)</th>
+          <th>BYN (TR)</th>
+          <th>Скидка</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="productsBody">
+        <tr><td colspan="10" style="text-align:center;padding:24px;color:#475569">Загрузка...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" id="pagination"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentPage = 1;
+let totalPages  = 1;
+let searchTimer = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/api/status');
+    document.getElementById('sUaTotal').textContent = (s.ua?.total ?? 0).toLocaleString('ru');
+    document.getElementById('sUaSale').textContent  = (s.ua?.on_sale ?? 0).toLocaleString('ru');
+    document.getElementById('sTrTotal').textContent = (s.tr?.total ?? 0).toLocaleString('ru');
+    document.getElementById('sTrSale').textContent  = (s.tr?.on_sale ?? 0).toLocaleString('ru');
+    // Count products with no BYN price
+    const r = await api('/api/products?limit=1&page=1');
+    // We'll compute this separately if needed
+  } catch(e) { console.error(e); }
+}
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { currentPage = 1; loadProducts(); }, 350);
+}
+
+function applyFilters() {
+  currentPage = 1;
+  loadProducts();
+}
+
+function resetFilters() {
+  document.getElementById('fSearch').value   = '';
+  document.getElementById('fRegion').value   = '';
+  document.getElementById('fType').value     = '';
+  document.getElementById('fTaskType').value = '';
+  document.getElementById('fDiscount').value = '';
+  applyFilters();
+}
+
+function buildQuery() {
+  const p = new URLSearchParams();
+  const s  = document.getElementById('fSearch').value.trim();
+  const r  = document.getElementById('fRegion').value;
+  const t  = document.getElementById('fType').value;
+  const tt = document.getElementById('fTaskType').value;
+  const d  = document.getElementById('fDiscount').value;
+  if (s)  p.set('search',    s);
+  if (r)  p.set('region',    r);
+  if (t)  p.set('type',      t);
+  if (tt) p.set('task_type', tt);
+  if (d)  p.set('discount',  d);
+  p.set('page',  currentPage);
+  p.set('limit', 50);
+  return p.toString();
+}
+
+// ── Load products ─────────────────────────────────────────────────────────────
+async function loadProducts() {
+  const body = document.getElementById('productsBody');
+  body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#475569">Загрузка...</td></tr>';
+  try {
+    const data = await api('/api/products?' + buildQuery());
+    totalPages = data.pages;
+    renderTable(data.items, data.total);
+    renderPagination(data.total);
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="10" style="color:#f87171;padding:16px">Ошибка: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Render table ──────────────────────────────────────────────────────────────
+function rowClass(item) {
+  if (!item.is_active) return 'row-inactive';
+  if (item.discount_pct > 0) return 'row-sale';
+  const hasByn = (item.region === 'UA' && item.price_byn) ||
+                 (item.region === 'TR' && item.price_byn_tr);
+  if (!hasByn) return 'row-no-price';
+  return '';
+}
+
+function typeBadge(t) {
+  const map = { game: ['badge-game','Игра'], subscription: ['badge-sub','Подписка'],
+                topup: ['badge-topup','Топап'], dlc: ['badge-dlc','DLC'] };
+  const [cls, label] = map[t] || ['badge-game', t];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function regionBadge(r) {
+  return r === 'UA'
+    ? '<span class="badge badge-ua">🇺🇦 UA</span>'
+    : '<span class="badge badge-tr">🇹🇷 TR</span>';
+}
+
+function priceCell(item, field, label) {
+  const val = item[field];
+  const display = val != null ? val : '—';
+  return `<span class="price-val" onclick="editPrice(${item.id}, '${field}', this)">${display}</span>`;
+}
+
+function renderTable(items, total) {
+  const body = document.getElementById('productsBody');
+  if (!items.length) {
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#475569">Нет товаров</td></tr>';
+    return;
+  }
+  body.innerHTML = items.map(item => {
+    const thumb = item.image_url
+      ? `<img class="thumb" src="${escHtml(item.image_url)}" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="thumb-placeholder">🎮</div>`;
+    const srcPrice = item.region === 'UA'
+      ? (item.price_uah ? item.price_uah.toLocaleString('ru') + ' ₴' : '—')
+      : (item.price_try ? item.price_try.toLocaleString('ru') + ' ₺' : '—');
+    const discBadge = item.discount_pct > 0
+      ? `<span class="discount-badge">-${Math.round(item.discount_pct)}%</span>` : '';
+    return `<tr class="${rowClass(item)}" id="row_${item.id}">
+      <td style="color:#475569;font-size:11px">${item.id}</td>
+      <td>${thumb}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(item.title)}">${escHtml(item.title)}</td>
+      <td>${regionBadge(item.region)}</td>
+      <td>${typeBadge(item.product_type)}</td>
+      <td style="color:#94a3b8">${srcPrice}</td>
+      <td id="byn_${item.id}">${priceCell(item, 'price_byn', 'BYN UA')}</td>
+      <td id="byntr_${item.id}">${priceCell(item, 'price_byn_tr', 'BYN TR')}</td>
+      <td>${discBadge}</td>
+      <td><button class="del-btn" onclick="deleteProduct(${item.id})" title="Удалить">🗑</button></td>
+    </tr>`;
+  }).join('');
+
+  // update no-BYN count
+  const noByn = items.filter(i =>
+    (i.region === 'UA' && !i.price_byn) ||
+    (i.region === 'TR' && !i.price_byn_tr)
+  ).length;
+  // rough count for visible page only — good enough for indicator
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Pagination ─────────────────────────────────────────────────────────────────
+function renderPagination(total) {
+  const pg = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+  const from = (currentPage - 1) * 50 + 1;
+  const to   = Math.min(currentPage * 50, total);
+  let html = `<span class="page-info">${from}–${to} из ${total.toLocaleString('ru')}</span>`;
+  html += `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  // Show window of pages
+  const start = Math.max(1, currentPage - 2);
+  const end   = Math.min(totalPages, currentPage + 2);
+  if (start > 1) html += `<button class="page-btn" onclick="goPage(1)">1</button>${start>2?'<span class="page-info">…</span>':''}`;
+  for (let p = start; p <= end; p++) {
+    html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  }
+  if (end < totalPages) html += `${end<totalPages-1?'<span class="page-info">…</span>':''}<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) {
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  loadProducts();
+  window.scrollTo(0, 0);
+}
+
+// ── Inline price edit ─────────────────────────────────────────────────────────
+function editPrice(id, field, spanEl) {
+  const current = spanEl.textContent === '—' ? '' : spanEl.textContent;
+  const cellId  = field === 'price_byn' ? `byn_${id}` : `byntr_${id}`;
+  const cell    = document.getElementById(cellId);
+  cell.innerHTML = `
+    <input class="price-input" id="pi_${id}_${field}" type="number" min="0" value="${current}" autofocus>
+    <button class="price-save" onclick="savePrice(${id},'${field}')">✓</button>
+    <button class="price-cancel" onclick="cancelEdit(${id},'${field}','${current}')">✕</button>`;
+  document.getElementById(`pi_${id}_${field}`).focus();
+  document.getElementById(`pi_${id}_${field}`).addEventListener('keydown', e => {
+    if (e.key === 'Enter') savePrice(id, field);
+    if (e.key === 'Escape') cancelEdit(id, field, current);
+  });
+}
+
+async function savePrice(id, field) {
+  const input = document.getElementById(`pi_${id}_${field}`);
+  if (!input) return;
+  const val = input.value.trim() === '' ? null : parseInt(input.value, 10);
+  try {
+    await api(`/api/products/${id}/price`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: val }),
+    });
+    const cellId = field === 'price_byn' ? `byn_${id}` : `byntr_${id}`;
+    const cell   = document.getElementById(cellId);
+    // rebuild the span with new value
+    const mockItem = { id, [field]: val };
+    cell.innerHTML = `<span class="price-val" onclick="editPrice(${id}, '${field}', this)">${val ?? '—'}</span>`;
+    toast('Цена сохранена ✓');
+  } catch(e) {
+    toast(`Ошибка: ${e.message}`, 'err');
+  }
+}
+
+function cancelEdit(id, field, original) {
+  const cellId = field === 'price_byn' ? `byn_${id}` : `byntr_${id}`;
+  const cell   = document.getElementById(cellId);
+  cell.innerHTML = `<span class="price-val" onclick="editPrice(${id}, '${field}', this)">${original || '—'}</span>`;
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+async function deleteProduct(id) {
+  if (!confirm(`Удалить товар #${id}?`)) return;
+  try {
+    await api(`/api/products/${id}`, { method: 'DELETE' });
+    document.getElementById(`row_${id}`)?.remove();
+    toast('Товар удалён');
+  } catch(e) {
+    toast(`Ошибка: ${e.message}`, 'err');
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadStats();
+loadProducts();
+</script>
+</body>
+</html>

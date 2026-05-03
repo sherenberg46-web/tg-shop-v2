@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 TG-Shop Parser</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px 40px; }
+
+  /* Header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .header h1 { font-size: 22px; font-weight: 800; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .global-dot { width: 10px; height: 10px; border-radius: 50%; background: #475569; transition: background .3s; flex-shrink: 0; }
+  .global-dot.running { background: #22d3ee; box-shadow: 0 0 8px #22d3ee; animation: pulse 1s infinite; }
+  .global-dot.done    { background: #22c55e; }
+  .global-dot.error   { background: #ef4444; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .global-label { font-size: 13px; color: #64748b; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #1e293b; border-radius: 14px; padding: 18px 20px; }
+  .stat-flag { font-size: 20px; margin-bottom: 6px; }
+  .stat-region { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+  .stat-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+  .stat-num { font-size: 32px; font-weight: 900; color: #fff; }
+  .stat-sub { font-size: 12px; color: #64748b; }
+  .stat-sale { font-size: 13px; color: #22d3ee; font-weight: 600; margin-bottom: 8px; }
+  .stat-last { font-size: 11px; color: #475569; line-height: 1.5; margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px; }
+
+  /* Tasks grid */
+  .section-title { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; margin-top: 24px; }
+  .tasks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .task-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; background: #1e293b;
+    border: none; border-radius: 12px;
+    color: #94a3b8; font-size: 14px; font-weight: 600;
+    cursor: pointer; text-align: left;
+    transition: background .15s, color .15s, transform .1s;
+    position: relative; overflow: hidden;
+  }
+  .task-btn:hover:not(:disabled) { background: #334155; color: #fff; transform: translateY(-1px); }
+  .task-btn.running  { background: #1d4ed8; color: #fff; }
+  .task-btn.running::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,.08) 50%, transparent 70%);
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+  .task-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .task-dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; flex-shrink: 0; transition: background .3s; }
+  .task-dot.running { background: #22d3ee; box-shadow: 0 0 5px #22d3ee; animation: pulse 1s infinite; }
+  .task-dot.done    { background: #22c55e; }
+  .task-dot.error   { background: #ef4444; }
+  .task-label { flex: 1; }
+  .task-region { font-size: 11px; color: #64748b; background: #0f172a; padding: 1px 6px; border-radius: 4px; }
+  .task-btn.running .task-region { color: #93c5fd; background: rgba(29,78,216,.4); }
+
+  /* Log panel */
+  .log-panel { background: #1e293b; border-radius: 14px; overflow: hidden; margin-top: 24px; display: none; }
+  .log-panel.visible { display: block; }
+  .log-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #334155; }
+  .log-header-left { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; }
+  .log-close { background: none; border: none; color: #475569; font-size: 18px; cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+  .log-close:hover { color: #94a3b8; }
+  .log-body { font-family: "Consolas", "Menlo", monospace; font-size: 12.5px; line-height: 1.65; padding: 14px 18px; overflow-y: auto; max-height: 380px; }
+  .log-line { margin-bottom: 1px; }
+  .log-line.ok   { color: #4ade80; }
+  .log-line.err  { color: #f87171; }
+  .log-line.warn { color: #fbbf24; }
+  .log-line.info { color: #94a3b8; }
+
+  /* History */
+  .history-card { background: #1e293b; border-radius: 14px; overflow: hidden; margin-top: 24px; }
+  .history-header { padding: 14px 18px; border-bottom: 1px solid #334155; font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; display: flex; justify-content: space-between; align-items: center; }
+  .refresh-btn { background: #334155; border: none; color: #94a3b8; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .refresh-btn:hover { background: #475569; color: #fff; }
+  .history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .history-table th { padding: 9px 12px; text-align: left; color: #64748b; font-weight: 600; border-bottom: 1px solid #334155; white-space: nowrap; }
+  .history-table td { padding: 8px 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table tr:hover td { background: #0f172a; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .badge-done    { background: #14532d; color: #4ade80; }
+  .badge-error   { background: #7f1d1d; color: #f87171; }
+  .badge-running { background: #1e3a8a; color: #93c5fd; }
+
+  .db-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; background: #1e293b;
+    border-radius: 12px; text-decoration: none;
+    color: #94a3b8; font-size: 14px; font-weight: 600;
+    transition: background .15s, color .15s;
+  }
+  .db-link:hover { background: #334155; color: #fff; }
+
+  @media (max-width: 520px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .tasks-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>🎮 TG-Shop Parser</h1>
+    <div class="header-right">
+      <div class="global-dot" id="globalDot"></div>
+      <span class="global-label" id="globalLabel">Ожидание</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card" id="statUA">
+      <div class="stat-flag">🇺🇦</div>
+      <div class="stat-region">UA — Украина</div>
+      <div class="stat-row"><span class="stat-num" id="uaTotal">—</span><span class="stat-sub">товаров</span></div>
+      <div class="stat-sale" id="uaSale"></div>
+      <div class="stat-last" id="uaLast"></div>
+    </div>
+    <div class="stat-card" id="statTR">
+      <div class="stat-flag">🇹🇷</div>
+      <div class="stat-region">TR — Турция</div>
+      <div class="stat-row"><span class="stat-num" id="trTotal">—</span><span class="stat-sub">товаров</span></div>
+      <div class="stat-sale" id="trSale"></div>
+      <div class="stat-last" id="trLast"></div>
+    </div>
+  </div>
+
+  <!-- Task buttons -->
+  <div class="section-title">Задачи парсера</div>
+  <div class="tasks-grid" id="tasksGrid"><!-- filled by JS --></div>
+
+  <!-- Эдишены -->
+  <div class="section-title" style="margin-top:24px">Эдишены игр</div>
+  <div class="tasks-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+    <button class="task-btn" id="btn_editions_ua" onclick="runEditions('UA')">
+      <span class="task-dot" id="dot_editions_ua"></span>
+      <span class="task-label">🎮 Загрузить эдишены</span>
+      <span class="task-region">UA</span>
+    </button>
+    <button class="task-btn" id="btn_editions_tr" onclick="runEditions('TR')">
+      <span class="task-dot" id="dot_editions_tr"></span>
+      <span class="task-label">🎮 Загрузить эдишены</span>
+      <span class="task-region">TR</span>
+    </button>
+    <button class="task-btn" id="btn_editions_all" onclick="runEditions('ALL')">
+      <span class="task-dot" id="dot_editions_all"></span>
+      <span class="task-label">🎮 Все регионы</span>
+      <span class="task-region">ALL</span>
+    </button>
+  </div>
+
+  <!-- База товаров -->
+  <div class="section-title" style="margin-top:24px">База товаров</div>
+  <a href="/products" class="db-link">
+    <span>📦</span>
+    <span class="task-label">Открыть базу товаров</span>
+    <span id="dbStats" class="task-region">...</span>
+  </a>
+
+  <!-- Log panel -->
+  <div class="log-panel" id="logPanel">
+    <div class="log-header">
+      <span class="log-header-left" id="logTitle">📋 Лог выполнения</span>
+      <button class="log-close" onclick="closeLog()">✕</button>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+
+  <!-- History -->
+  <div class="history-card">
+    <div class="history-header">
+      <span>📚 История запусков</span>
+      <button class="refresh-btn" onclick="loadAll()">↻ Обновить</button>
+    </div>
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Регион</th><th>Задача</th><th>Начало</th>
+          <th>Длит.</th><th style="color:#4ade80">+Добавл.</th>
+          <th style="color:#93c5fd">Обновл.</th><th style="color:#f87171">Ошибок</th><th>Статус</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody">
+        <tr><td colspan="9" style="text-align:center;padding:20px;color:#475569">Загрузка...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let running  = false;
+let activeId = null;
+
+const TASK_ORDER = [
+  ['new_games',   '🆕 Новые игры'],
+  ['sales',       '🔥 Скидки'],
+  ['preorders',   '⏳ Предзаказы'],
+  ['all',         '🔄 Обновить всё'],
+  ['reset_sales', '🗑️ Сбросить скидки'],
+];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function init() {
+  buildTaskGrid();
+  loadAll();
+  setInterval(loadAll, 30000);
+}
+
+// ── Build task grid ───────────────────────────────────────────────────────────
+function buildTaskGrid() {
+  const grid = document.getElementById('tasksGrid');
+  // UA column first, then TR — interleaved so rows match visually
+  const rows = TASK_ORDER.map(([task, label]) => {
+    return ['UA', 'TR'].map(region => {
+      const id = `${region.toLowerCase()}-${task}`;
+      return `
+        <button class="task-btn" id="btn_${id}" onclick="runTask('${region}','${task}','${label}')">
+          <span class="task-dot" id="dot_${id}"></span>
+          <span class="task-label">${label}</span>
+          <span class="task-region">${region}</span>
+        </button>`;
+    }).join('');
+  });
+  grid.innerHTML = rows.join('');
+}
+
+// ── Run task ──────────────────────────────────────────────────────────────────
+async function runTask(region, task, label) {
+  if (running) return;
+  running  = true;
+  activeId = `${region.toLowerCase()}-${task}`;
+
+  setGlobal('running', 'Выполняется...');
+  openLog(`📋 ${label} ${region}`);
+  appendLog(`▶ Запуск: ${label} ${region}`, 'info');
+
+  document.querySelectorAll('.task-btn').forEach(b => b.disabled = true);
+  const btn = document.getElementById(`btn_${activeId}`);
+  const dot = document.getElementById(`dot_${activeId}`);
+  if (btn) btn.classList.add('running');
+  if (dot) dot.classList.add('running');
+
+  try {
+    const resp = await fetch(`/api/run/${region}/${task}`, { method: 'POST' });
+    if (!resp.ok) {
+      appendLog(`❌ ${await resp.text()}`, 'err');
+      finishTask('error');
+      return;
+    }
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const msg = line.slice(6).trim();
+        if (!msg) continue;
+        const cls = msg.startsWith('❌') ? 'err'
+                  : msg.startsWith('✅') ? 'ok'
+                  : msg.startsWith('⚠️') ? 'warn'
+                  : 'info';
+        appendLog(msg, cls);
+      }
+    }
+    finishTask('done');
+  } catch (e) {
+    appendLog(`❌ ${e.message}`, 'err');
+    finishTask('error');
+  }
+}
+
+function finishTask(status) {
+  running = false;
+  setGlobal(status, status === 'done' ? 'Завершено' : 'Ошибка');
+  document.querySelectorAll('.task-btn').forEach(b => b.disabled = false);
+  if (activeId) {
+    const btn = document.getElementById(`btn_${activeId}`);
+    const dot = document.getElementById(`dot_${activeId}`);
+    if (btn) btn.classList.remove('running');
+    if (dot) { dot.classList.remove('running'); dot.classList.add(status); }
+  }
+  loadAll();
+}
+
+// ── Log panel ─────────────────────────────────────────────────────────────────
+function openLog(title) {
+  document.getElementById('logTitle').textContent = title;
+  document.getElementById('logBody').innerHTML = '';
+  document.getElementById('logPanel').classList.add('visible');
+}
+function closeLog() {
+  document.getElementById('logPanel').classList.remove('visible');
+}
+function appendLog(msg, cls = 'info') {
+  const body = document.getElementById('logBody');
+  const div  = document.createElement('div');
+  div.className = `log-line ${cls}`;
+  div.textContent = msg;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const s = await api('/api/status');
+    for (const r of ['ua', 'tr']) {
+      const data = s[r] || {};
+      const R = r.toUpperCase();
+      document.getElementById(`${r}Total`).textContent = (data.total ?? 0).toLocaleString('ru');
+      document.getElementById(`${r}Sale`).textContent =
+        data.on_sale > 0 ? `💰 ${data.on_sale.toLocaleString('ru')} со скидкой` : '';
+      const lastEl = document.getElementById(`${r}Last`);
+      if (data.last_run) {
+        const d   = new Date(data.last_run.started_at + 'Z');
+        const fin = data.last_run.finished_at ? new Date(data.last_run.finished_at + 'Z') : null;
+        const dur = fin ? Math.round((fin - d) / 1000) + 'с' : '…';
+        lastEl.textContent =
+          `${data.last_run.task_type} · ${d.toLocaleString('ru')} · ${dur} · ${data.last_run.status}`;
+      } else {
+        lastEl.textContent = 'Запусков нет';
+      }
+    }
+    const uaT = s.ua?.total ?? 0;
+    const trT = s.tr?.total ?? 0;
+    const dbEl = document.getElementById('dbStats');
+    if (dbEl) dbEl.textContent = `UA ${uaT.toLocaleString('ru')} · TR ${trT.toLocaleString('ru')}`;
+  } catch (e) { console.error('stats', e); }
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const logs = await api('/api/logs?limit=20');
+    const body = document.getElementById('historyBody');
+    if (!logs.length) {
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:16px;color:#475569">Нет данных</td></tr>';
+      return;
+    }
+    body.innerHTML = logs.map(l => {
+      const start = new Date(l.started_at + 'Z');
+      const end   = l.finished_at ? new Date(l.finished_at + 'Z') : null;
+      const dur   = end ? Math.round((end - start) / 1000) + 'с' : '—';
+      const badge = l.status === 'done'    ? 'badge-done'
+                  : l.status === 'error'   ? 'badge-error'
+                  : 'badge-running';
+      return `<tr>
+        <td style="color:#475569">#${l.id}</td>
+        <td>${l.region}</td>
+        <td>${l.task_type}</td>
+        <td style="white-space:nowrap">${start.toLocaleString('ru')}</td>
+        <td>${dur}</td>
+        <td style="color:#4ade80">${l.products_added || 0}</td>
+        <td style="color:#93c5fd">${l.products_updated || 0}</td>
+        <td style="color:#f87171">${l.errors_count || 0}</td>
+        <td><span class="badge ${badge}">${l.status}</span></td>
+      </tr>`;
+    }).join('');
+  } catch (e) { console.error('history', e); }
+}
+
+function loadAll() { loadStats(); loadHistory(); }
+
+// ── Run editions task ─────────────────────────────────────────────────────────
+async function runEditions(region) {
+  if (running) return;
+  running  = true;
+  activeId = `editions_${region.toLowerCase()}`;
+
+  setGlobal('running', 'Выполняется...');
+  openLog(`📋 Загрузка эдишенов ${region}`);
+  appendLog(`▶ Запуск: загрузка эдишенов ${region}`, 'info');
+
+  document.querySelectorAll('.task-btn').forEach(b => b.disabled = true);
+  const btn = document.getElementById(`btn_editions_${region.toLowerCase()}`);
+  const dot = document.getElementById(`dot_editions_${region.toLowerCase()}`);
+  if (btn) btn.classList.add('running');
+  if (dot) dot.classList.add('running');
+
+  try {
+    const resp = await fetch(`/api/run/editions/${region}`, { method: 'POST' });
+    if (!resp.ok) {
+      appendLog(`❌ ${await resp.text()}`, 'err');
+      finishTask('error');
+      return;
+    }
+    const reader  = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const msg = line.slice(6).trim();
+        if (!msg) continue;
+        const cls = msg.startsWith('❌') ? 'err'
+                  : msg.startsWith('✅') ? 'ok'
+                  : msg.startsWith('⚠️') ? 'warn'
+                  : 'info';
+        appendLog(msg, cls);
+      }
+    }
+    finishTask('done');
+  } catch (e) {
+    appendLog(`❌ ${e.message}`, 'err');
+    finishTask('error');
+  }
+}
+
+// ── Global status dot ─────────────────────────────────────────────────────────
+function setGlobal(state, label) {
+  const dot = document.getElementById('globalDot');
+  const txt = document.getElementById('globalLabel');
+  dot.className = 'global-dot ' + state;
+  txt.textContent = label;
+}
+
+init();
+</script>
+</body>
+</html>
